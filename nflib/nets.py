@@ -72,6 +72,9 @@ class ARMLP(nn.Module):
     """ a 4-layer auto-regressive MLP, wrapper around MADE net """
 
     def __init__(self, nin, nout, nh):
+        '''
+                nh is number of hidden units
+        '''
         super().__init__()
         self.net = MADE(nin, [nh, nh, nh], nout, num_masks=1, natural_ordering=True)
         

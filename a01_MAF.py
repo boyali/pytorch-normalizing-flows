@@ -54,6 +54,14 @@ class DatasetMixture:
 
     def sample(self, n):
         assert n % 4 == 0
+
+        '''
+                V = array([1,2,3,4,5,6 ])
+                Y = array([7,8,9,10,11,12])
+                np.r_[V[0:2],Y[0],V[3],Y[1:3],V[4:],Y[4:]]
+                
+                result: array([ 1,  2,  7,  4,  8,  9,  5,  6, 11, 12])
+        '''
         r = np.r_[np.random.randn(n // 4, 2) * 0.5 + np.array([0, -2]),
                   np.random.randn(n // 4, 2) * 0.5 + np.array([0, 0]),
                   np.random.randn(n // 4, 2) * 0.5 + np.array([2, 2]),
@@ -70,5 +78,30 @@ flows = [MAF(dim=2, parity=i%2) for i in range(4)]
 
 ## --------------- CONSTRUCT MODEL -----------------#
 
+# construct a model
+#prior = MultivariateNormal(torch.zeros(2), torch.eye(2))
+prior = TransformedDistribution(Uniform(torch.zeros(2), torch.ones(2)), SigmoidTransform().inv) # Logistic distribution
+
 # construct the model
 model = NormalizingFlowModel(prior, flows)
+
+# optimizer
+optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)  # todo tune WD
+print("number of params: ", sum(p.numel() for p in model.parameters()))
+
+# %%
+
+model.train()
+for k in range(1000):
+    x = d.sample(128)
+
+    zs, prior_logprob, log_det = model(x)
+    logprob = prior_logprob + log_det
+    loss = -torch.sum(logprob)  # NLL
+
+    model.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+    if k % 100 == 0:
+        print(loss.item())

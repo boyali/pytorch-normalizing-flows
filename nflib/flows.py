@@ -179,7 +179,9 @@ class MAF(nn.Module):
         # here we see that we are evaluating all of z in parallel, so density estimation will be fast
         st = self.net(x)
         s, t = st.split(self.dim, dim=1)
+
         z = x * torch.exp(s) + t
+
         # reverse order, so if we stack MAFs correct things happen
         z = z.flip(dims=(1,)) if self.parity else z
         log_det = torch.sum(s, dim=1)
@@ -190,6 +192,7 @@ class MAF(nn.Module):
         x = torch.zeros_like(z)
         log_det = torch.zeros(z.size(0))
         z = z.flip(dims=(1,)) if self.parity else z
+
         for i in range(self.dim):
             st = self.net(x.clone()) # clone to avoid in-place op errors if using IAF
             s, t = st.split(self.dim, dim=1)
